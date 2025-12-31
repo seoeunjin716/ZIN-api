@@ -1,0 +1,58 @@
+# ========================================================================
+# .env 파일 템플릿
+# ========================================================================
+# 이 파일을 .env로 복사하여 사용하세요:
+# cp ENV_TEMPLATE.txt .env
+# ========================================================================
+
+# ========================================================================
+# Neon PostgreSQL 데이터베이스 설정
+# ========================================================================
+# 전체 연결 문자열 (DATABASE_URL)
+DATABASE_URL=postgresql://neondb_owner:npg_zeqOWxQ07uaX@ep-ancient-rice-a175yjcs-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+# 개별 환경 변수
+DB_HOST=ep-ancient-rice-a175yjcs-pooler.ap-southeast-1.aws.neon.tech
+DB_PORT=5432
+DB_NAME=neondb
+DB_USER=neondb_owner
+DB_PASSWORD=npg_zeqOWxQ07uaX
+DB_SSL_MODE=require
+
+# ========================================================================
+# Upstash Redis 설정
+# ========================================================================
+REDIS_HOST=summary-polliwog-43960.upstash.io
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_SSL_ENABLED=true
+
+# ========================================================================
+# JWT 설정
+# ========================================================================
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long-change-this-in-production
+JWT_ACCESS_TOKEN_EXPIRATION=3600000
+JWT_REFRESH_TOKEN_EXPIRATION=2592000000
+
+# ========================================================================
+# OAuth 설정
+# ========================================================================
+# Kakao OAuth
+KAKAO_REST_API_KEY=
+KAKAO_REDIRECT_URI=
+
+# Google OAuth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
+
+# Naver OAuth
+NAVER_CLIENT_ID=
+NAVER_CLIENT_SECRET=
+NAVER_REDIRECT_URI=
+
+# ========================================================================
+# 서버 설정
+# ========================================================================
+SERVER_PORT=8080
+

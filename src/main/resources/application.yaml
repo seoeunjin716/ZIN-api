@@ -1,0 +1,124 @@
+spring:
+  application:
+    name: api
+
+  # Spring Cloud Config 비활성화 (모놀리식 구조에서는 불필요)
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+  config:
+    import: "optional:configserver:"
+
+  # Neon PostgreSQL 데이터베이스 설정
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:ep-ancient-rice-a175yjcs-pooler.ap-southeast-1.aws.neon.tech}:${DB_PORT:5432}/${DB_NAME:neondb}?sslmode=${DB_SSL_MODE:require}
+    username: ${DB_USER:neondb_owner}
+    password: ${DB_PASSWORD:npg_zeqOWxQ07uaX}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 300000
+      max-lifetime: 600000
+
+  # JPA/Hibernate 설정
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          time_zone: Asia/Seoul
+        jdbc.lob.non_contextual_creation: true
+
+  # Redis 설정 (Upstash)
+  data:
+    redis:
+      host: ${REDIS_HOST:summary-polliwog-43960.upstash.io}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:true}
+      timeout: 2000ms
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+        ssl:
+          enabled: true
+          verify-peer: true
+
+# CORS 설정
+cors:
+  allowed-origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+    - PATCH
+  allowed-headers: "*"
+  allow-credentials: true
+  max-age: 3600
+
+# OAuth 설정
+oauth:
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY:}
+    redirect-uri: ${KAKAO_REDIRECT_URI:}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:}
+  naver:
+    client-id: ${NAVER_CLIENT_ID:}
+    client-secret: ${NAVER_CLIENT_SECRET:}
+    redirect-uri: ${NAVER_REDIRECT_URI:}
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000} # 기본 1시간
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:2592000000} # 기본 30일
+
+# SpringDoc OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /docs
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    use-root-path: false
+    persist-authorization: true
+  show-actuator: false
+  default-flat-param-object: true
+  writer-with-order-by-keys: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# 로깅 설정
+logging:
+  level:
+    com.seoeunjin: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
