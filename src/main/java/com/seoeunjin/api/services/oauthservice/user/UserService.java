@@ -1,4 +1,4 @@
-package com.seoeunjin.api.user;
+package com.seoeunjin.api.services.oauthservice.user;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

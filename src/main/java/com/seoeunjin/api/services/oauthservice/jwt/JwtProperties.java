@@ -1,4 +1,4 @@
-package com.seoeunjin.api.jwt;
+package com.seoeunjin.api.services.oauthservice.jwt;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

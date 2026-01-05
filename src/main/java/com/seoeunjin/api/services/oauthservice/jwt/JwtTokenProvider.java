@@ -1,4 +1,4 @@
-package com.seoeunjin.api.jwt;
+package com.seoeunjin.api.services.oauthservice.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

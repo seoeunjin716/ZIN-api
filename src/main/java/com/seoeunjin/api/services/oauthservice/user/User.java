@@ -1,4 +1,4 @@
-package com.seoeunjin.api.user;
+package com.seoeunjin.api.services.oauthservice.user;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

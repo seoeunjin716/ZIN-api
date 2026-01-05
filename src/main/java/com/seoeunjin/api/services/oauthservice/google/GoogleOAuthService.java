@@ -1,4 +1,4 @@
-package com.seoeunjin.api.naver;
+package com.seoeunjin.api.services.oauthservice.google;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,89 +8,69 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class NaverOAuthService {
+public class GoogleOAuthService {
 
     private final RestTemplate restTemplate;
     
-    @Value("${naver.client-id:}")
+    @Value("${google.client-id:}")
     private String clientId;
     
-    @Value("${naver.client-secret:}")
+    @Value("${google.client-secret:}")
     private String clientSecret;
     
-    @Value("${naver.redirect-uri:http://localhost:8080/auth/naver/callback}")
+    @Value("${google.redirect-uri:http://localhost:8080/google/callback}")
     private String redirectUri;
-    
-    // state 관리를 위한 간단한 저장소 (실제 프로덕션에서는 Redis 등 사용 권장)
-    private final Map<String, String> stateStore = new HashMap<>();
-    private final SecureRandom random = new SecureRandom();
 
     @Autowired
-    public NaverOAuthService(RestTemplate restTemplate) {
+    public GoogleOAuthService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     /**
-     * 네이버 OAuth 인증 URL 생성
-     * 네이버는 state 파라미터가 필요함 (CSRF 방지)
+     * 구글 OAuth 인증 URL 생성
+     * scope: openid, email, profile (이메일, 프로필 정보 권한)
      */
     public String getAuthorizationUrl() {
         try {
-            // 랜덤 state 생성
-            byte[] stateBytes = new byte[16];
-            random.nextBytes(stateBytes);
-            String state = Base64.getUrlEncoder().withoutPadding().encodeToString(stateBytes);
-            
-            // state 저장 (콜백에서 검증용)
-            stateStore.put(state, "valid");
-            
+            String scope = "openid email profile";
             String encodedRedirectUri = java.net.URLEncoder.encode(redirectUri, "UTF-8");
+            String encodedScope = java.net.URLEncoder.encode(scope, "UTF-8");
             
             return String.format(
-                "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=%s&redirect_uri=%s&state=%s",
+                "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=%s",
                 clientId,
                 encodedRedirectUri,
-                state
+                encodedScope
             );
         } catch (Exception e) {
             // 인코딩 실패 시 기본 URL 반환
             return String.format(
-                "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=%s&redirect_uri=%s&state=default",
+                "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=openid%%20email%%20profile",
                 clientId,
                 redirectUri
             );
         }
-    }
-    
-    /**
-     * State 검증
-     */
-    public boolean validateState(String state) {
-        return stateStore.containsKey(state) && "valid".equals(stateStore.remove(state));
     }
 
     /**
      * Authorization Code로 Access Token 교환
      */
     @SuppressWarnings("unchecked")
-    public Map<String, Object> getAccessToken(String code, String state) {
-        String url = "https://nid.naver.com/oauth2.0/token";
+    public Map<String, Object> getAccessToken(String code) {
+        String url = "https://oauth2.googleapis.com/token";
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "authorization_code");
+        params.add("code", code);
         params.add("client_id", clientId);
         params.add("client_secret", clientSecret);
-        params.add("code", code);
-        params.add("state", state);
+        params.add("redirect_uri", redirectUri);
+        params.add("grant_type", "authorization_code");
         
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
         
@@ -103,7 +83,7 @@ public class NaverOAuthService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getUserInfo(String accessToken) {
-        String url = "https://openapi.naver.com/v1/nid/me";
+        String url = "https://www.googleapis.com/oauth2/v2/userinfo";
         
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + accessToken);

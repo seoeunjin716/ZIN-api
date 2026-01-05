@@ -1,8 +1,8 @@
-package com.seoeunjin.api.kakao;
+package com.seoeunjin.api.services.oauthservice.kakao;
 
-import com.seoeunjin.api.jwt.JwtTokenProvider;
-import com.seoeunjin.api.user.User;
-import com.seoeunjin.api.user.UserService;
+import com.seoeunjin.api.services.oauthservice.jwt.JwtTokenProvider;
+import com.seoeunjin.api.services.oauthservice.user.User;
+import com.seoeunjin.api.services.oauthservice.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,4 +1,4 @@
-package com.seoeunjin.api.google;
+package com.seoeunjin.api.services.oauthservice.kakao;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,44 +11,54 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 @Service
-public class GoogleOAuthService {
+public class KakaoOAuthService {
 
     private final RestTemplate restTemplate;
     
-    @Value("${google.client-id:}")
+    @Value("${kakao.client-id:}")
     private String clientId;
     
-    @Value("${google.client-secret:}")
+    @Value("${KAKAO_REST_API_KEY:}")
+    private String restApiKey;
+    
+    @Value("${kakao.client-secret:}")
     private String clientSecret;
     
-    @Value("${google.redirect-uri:http://localhost:8080/google/callback}")
+    @Value("${kakao.redirect-uri:http://localhost:8080/kakao/callback}")
     private String redirectUri;
 
     @Autowired
-    public GoogleOAuthService(RestTemplate restTemplate) {
+    public KakaoOAuthService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
+        // KAKAO_CLIENT_ID가 비어있으면 KAKAO_REST_API_KEY 사용
+        if ((this.clientId == null || this.clientId.isEmpty()) && 
+            (this.restApiKey != null && !this.restApiKey.isEmpty())) {
+            this.clientId = this.restApiKey;
+        }
     }
 
     /**
-     * 구글 OAuth 인증 URL 생성
-     * scope: openid, email, profile (이메일, 프로필 정보 권한)
+     * 카카오 OAuth 인증 URL 생성
+     * scope: profile_nickname (기본 닉네임 권한)
+     * 필요시 profile_image, account_email 추가 가능 (카카오 개발자 콘솔에서 동의 항목 설정 필요)
      */
     public String getAuthorizationUrl() {
         try {
-            String scope = "openid email profile";
+            // 기본 scope만 요청 (필요시 카카오 개발자 콘솔에서 동의 항목 설정 후 추가)
+            String scope = "profile_nickname";
             String encodedRedirectUri = java.net.URLEncoder.encode(redirectUri, "UTF-8");
             String encodedScope = java.net.URLEncoder.encode(scope, "UTF-8");
             
             return String.format(
-                "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=%s",
+                "https://kauth.kakao.com/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=%s",
                 clientId,
                 encodedRedirectUri,
                 encodedScope
             );
         } catch (Exception e) {
-            // 인코딩 실패 시 기본 URL 반환
+            // 인코딩 실패 시 기본 URL 반환 (scope 없이)
             return String.format(
-                "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=openid%%20email%%20profile",
+                "https://kauth.kakao.com/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code",
                 clientId,
                 redirectUri
             );
@@ -60,17 +70,17 @@ public class GoogleOAuthService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getAccessToken(String code) {
-        String url = "https://oauth2.googleapis.com/token";
+        String url = "https://kauth.kakao.com/oauth/token";
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("code", code);
+        params.add("grant_type", "authorization_code");
         params.add("client_id", clientId);
         params.add("client_secret", clientSecret);
+        params.add("code", code);
         params.add("redirect_uri", redirectUri);
-        params.add("grant_type", "authorization_code");
         
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
         
@@ -83,7 +93,7 @@ public class GoogleOAuthService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getUserInfo(String accessToken) {
-        String url = "https://www.googleapis.com/oauth2/v2/userinfo";
+        String url = "https://kapi.kakao.com/v2/user/me";
         
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + accessToken);

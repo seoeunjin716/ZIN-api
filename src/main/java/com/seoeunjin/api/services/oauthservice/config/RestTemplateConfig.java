@@ -1,4 +1,4 @@
-package com.seoeunjin.api.config;
+package com.seoeunjin.api.services.oauthservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

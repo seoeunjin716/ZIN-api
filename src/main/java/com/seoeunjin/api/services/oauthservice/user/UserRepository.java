@@ -1,4 +1,4 @@
-package com.seoeunjin.api.user;
+package com.seoeunjin.api.services.oauthservice.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
