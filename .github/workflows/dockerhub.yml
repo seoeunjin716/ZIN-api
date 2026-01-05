@@ -56,7 +56,11 @@ jobs:
                   port: 22
                   timeout: 120s
                   command_timeout: 300s
-                  script_stop: true
+                  # IMPORTANT:
+                  # appleboy/ssh-action with script_stop=true may treat non-zero exit codes
+                  # from conditional test commands (e.g. `[ -f .env ]`) as a hard failure.
+                  # We rely on `set -e` inside the script instead.
+                  script_stop: false
                   debug: true
                   script: |
                       set -x
@@ -73,51 +77,34 @@ jobs:
                       echo "User: $(whoami)"
                       echo "=========================================="
 
-                      # Check if ~/api directory exists
-                      if [ ! -d ~/api ]; then
-                          echo "ERROR: ~/api directory not found"
-                          echo "Creating ~/api directory..."
-                          mkdir -p ~/api
-                      fi
-
+                      mkdir -p ~/api
                       cd ~/api
                       echo "Changed to directory: $(pwd)"
 
-                      # Check if .env file exists
-                      if [ ! -f .env ]; then
-                          echo "WARNING: .env file not found in ~/api"
-                      else
-                          echo ".env file found"
-                      fi
+                      # Fail fast if env file is missing (prevents running with blank config)
+                      [ -f .env ] || { echo "ERROR: .env file not found in ~/api"; exit 1; }
 
                       echo "=========================================="
                       echo "=== Pulling latest image ==="
                       echo "=========================================="
-                      docker pull $IMAGE
+                      docker pull "$IMAGE"
 
                       echo "=========================================="
-                      echo "=== Stopping existing container ==="
+                      echo "=== Stopping existing container (if any) ==="
                       echo "=========================================="
-                      if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-                          echo "Found existing container, stopping..."
-                          docker stop $CONTAINER || true
-                          docker rm $CONTAINER || true
-                          echo "Container stopped and removed"
-                      else
-                          echo "No existing container found"
-                      fi
+                      docker rm -f "$CONTAINER" 2>/dev/null || true
 
                       echo "=========================================="
                       echo "=== Starting new container ==="
                       echo "=========================================="
                       docker run -d \
-                        --name $CONTAINER \
+                        --name "$CONTAINER" \
                         -p 8080:8080 \
                         --env-file .env \
                         --restart unless-stopped \
                         --memory="1g" \
                         --cpus="1.5" \
-                        $IMAGE
+                        "$IMAGE"
 
                       echo "=========================================="
                       echo "=== Waiting for container to start ==="
@@ -132,7 +119,7 @@ jobs:
                       echo "=========================================="
                       echo "=== Container logs (last 50 lines) ==="
                       echo "=========================================="
-                      docker logs --tail 50 $CONTAINER || echo "Could not retrieve logs"
+                      docker logs --tail 50 "$CONTAINER" || true
 
                       echo "=========================================="
                       echo "=== Cleaning up unused images ==="
