@@ -42,27 +42,74 @@ jobs:
         if: github.ref == 'refs/heads/main'
 
         steps:
+            - name: Check EC2 connectivity
+              run: |
+                  echo "Checking EC2 host connectivity..."
+                  timeout 10 bash -c "echo > /dev/tcp/${{ secrets.EC2_HOST }}/22" && echo "Port 22 is open" || echo "Port 22 is not accessible"
+
             - name: Deploy to EC2
               uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{ secrets.EC2_HOST }}
                   username: ${{ secrets.EC2_USER }}
                   key: ${{ secrets.EC2_SSH_KEY }}
+                  port: 22
+                  timeout: 120s
+                  command_timeout: 300s
+                  script_stop: true
+                  debug: true
                   script: |
+                      set -x
                       set -e
 
-                      cd ~/api
                       IMAGE="${{ env.IMAGE_NAME }}:latest"
                       CONTAINER="api.seoeunjin.com"
 
-                      echo "Pulling latest image..."
+                      echo "=========================================="
+                      echo "=== Starting deployment ==="
+                      echo "Image: $IMAGE"
+                      echo "Container: $CONTAINER"
+                      echo "Current directory: $(pwd)"
+                      echo "User: $(whoami)"
+                      echo "=========================================="
+
+                      # Check if ~/api directory exists
+                      if [ ! -d ~/api ]; then
+                          echo "ERROR: ~/api directory not found"
+                          echo "Creating ~/api directory..."
+                          mkdir -p ~/api
+                      fi
+
+                      cd ~/api
+                      echo "Changed to directory: $(pwd)"
+
+                      # Check if .env file exists
+                      if [ ! -f .env ]; then
+                          echo "WARNING: .env file not found in ~/api"
+                      else
+                          echo ".env file found"
+                      fi
+
+                      echo "=========================================="
+                      echo "=== Pulling latest image ==="
+                      echo "=========================================="
                       docker pull $IMAGE
 
-                      echo "Stopping and removing existing container..."
-                      docker stop $CONTAINER || true
-                      docker rm $CONTAINER || true
+                      echo "=========================================="
+                      echo "=== Stopping existing container ==="
+                      echo "=========================================="
+                      if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
+                          echo "Found existing container, stopping..."
+                          docker stop $CONTAINER || true
+                          docker rm $CONTAINER || true
+                          echo "Container stopped and removed"
+                      else
+                          echo "No existing container found"
+                      fi
 
-                      echo "Starting new container..."
+                      echo "=========================================="
+                      echo "=== Starting new container ==="
+                      echo "=========================================="
                       docker run -d \
                         --name $CONTAINER \
                         -p 8080:8080 \
@@ -72,8 +119,26 @@ jobs:
                         --cpus="1.5" \
                         $IMAGE
 
-                      echo "Container logs:"
-                      docker logs --tail 50 $CONTAINER
+                      echo "=========================================="
+                      echo "=== Waiting for container to start ==="
+                      echo "=========================================="
+                      sleep 5
 
-                      echo "Cleaning up unused images..."
-                      docker image prune -f
+                      echo "=========================================="
+                      echo "=== Container status ==="
+                      echo "=========================================="
+                      docker ps --filter "name=$CONTAINER" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+                      echo "=========================================="
+                      echo "=== Container logs (last 50 lines) ==="
+                      echo "=========================================="
+                      docker logs --tail 50 $CONTAINER || echo "Could not retrieve logs"
+
+                      echo "=========================================="
+                      echo "=== Cleaning up unused images ==="
+                      echo "=========================================="
+                      docker image prune -f || true
+
+                      echo "=========================================="
+                      echo "=== Deployment completed successfully ==="
+                      echo "=========================================="
