@@ -81,6 +81,8 @@ jobs:
                       cd ~/api
                       echo "Changed to directory: $(pwd)"
 
+
+                      
                       # Fail fast if env file is missing (prevents running with blank config)
                       [ -f .env ] || { echo "ERROR: .env file not found in ~/api"; exit 1; }
 
