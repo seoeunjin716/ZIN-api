@@ -40,8 +40,12 @@ public class JwtTokenProvider {
      * JWT 토큰 생성
      */
     public String generateToken(Long userId, String email, String name, String provider) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
+        
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtProperties.getExpiration());
+        Date expiryDate = new Date(now.getTime() + jwtProperties.getAccessTokenExpiration());
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);

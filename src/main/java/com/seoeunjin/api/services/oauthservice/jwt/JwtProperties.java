@@ -7,7 +7,8 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
     private String secret;
-    private Long expiration;
+    private Long accessTokenExpiration;
+    private Long refreshTokenExpiration;
 
     public String getSecret() {
         return secret;
@@ -17,12 +18,26 @@ public class JwtProperties {
         this.secret = secret;
     }
 
-    public Long getExpiration() {
-        return expiration;
+    public Long getAccessTokenExpiration() {
+        return accessTokenExpiration != null ? accessTokenExpiration : 3600000L; // 기본 1시간
     }
 
-    public void setExpiration(Long expiration) {
-        this.expiration = expiration;
+    public void setAccessTokenExpiration(Long accessTokenExpiration) {
+        this.accessTokenExpiration = accessTokenExpiration;
+    }
+
+    public Long getRefreshTokenExpiration() {
+        return refreshTokenExpiration != null ? refreshTokenExpiration : 2592000000L; // 기본 30일
+    }
+
+    public void setRefreshTokenExpiration(Long refreshTokenExpiration) {
+        this.refreshTokenExpiration = refreshTokenExpiration;
+    }
+
+    // 하위 호환성을 위한 메서드
+    @Deprecated
+    public Long getExpiration() {
+        return getAccessTokenExpiration();
     }
 }
 

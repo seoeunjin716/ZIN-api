@@ -18,13 +18,13 @@ public class NaverOAuthService {
 
     private final RestTemplate restTemplate;
 
-    @Value("${naver.client-id:}")
+    @Value("${oauth.naver.client-id:}")
     private String clientId;
 
-    @Value("${naver.client-secret:}")
+    @Value("${oauth.naver.client-secret:}")
     private String clientSecret;
 
-    @Value("${naver.redirect-uri:http://localhost:8080/naver/callback}")
+    @Value("${oauth.naver.redirect-uri:http://localhost:8080/naver/callback}")
     private String redirectUri;
 
     // state 관리를 위한 간단한 저장소 (실제 프로덕션에서는 Redis 등 사용 권장)

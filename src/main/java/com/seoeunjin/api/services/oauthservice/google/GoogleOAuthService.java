@@ -15,13 +15,13 @@ public class GoogleOAuthService {
 
     private final RestTemplate restTemplate;
     
-    @Value("${google.client-id:}")
+    @Value("${oauth.google.client-id:}")
     private String clientId;
     
-    @Value("${google.client-secret:}")
+    @Value("${oauth.google.client-secret:}")
     private String clientSecret;
     
-    @Value("${google.redirect-uri:http://localhost:8080/google/callback}")
+    @Value("${oauth.google.redirect-uri:http://localhost:8080/google/callback}")
     private String redirectUri;
 
     @Autowired

@@ -58,7 +58,7 @@ public class NaverController {
 
         if (error != null) {
             try {
-                response.sendRedirect("http://localhost:3000/login?error=naver_cancel");
+                response.sendRedirect("http://localhost:3000/?error=naver_cancel");
             } catch (Exception e) {
                 // ignore
             }
@@ -67,7 +67,7 @@ public class NaverController {
 
         if (code == null) {
             try {
-                response.sendRedirect("http://localhost:3000/login?error=naver_no_code");
+                response.sendRedirect("http://localhost:3000/?error=naver_no_code");
             } catch (Exception e) {
                 // ignore
             }
@@ -77,7 +77,7 @@ public class NaverController {
         // State 검증
         if (state == null || !naverOAuthService.validateState(state)) {
             try {
-                response.sendRedirect("http://localhost:3000/login?error=naver_invalid_state");
+                response.sendRedirect("http://localhost:3000/?error=naver_invalid_state");
             } catch (Exception e) {
                 // ignore
             }
@@ -90,7 +90,7 @@ public class NaverController {
 
             if (tokenResponse == null || !tokenResponse.containsKey("access_token")) {
                 System.err.println("네이버 Access Token 응답 오류: " + tokenResponse);
-                response.sendRedirect("http://localhost:3000/login?error=naver_token_failed");
+                response.sendRedirect("http://localhost:3000/?error=naver_token_failed");
                 return;
             }
 
@@ -104,7 +104,7 @@ public class NaverController {
             Map<String, Object> responseData = (Map<String, Object>) userInfoResponse.get("response");
             if (responseData == null) {
                 System.err.println("네이버 사용자 정보 조회 실패: 응답 데이터 없음");
-                response.sendRedirect("http://localhost:3000/login?error=naver_no_user_info");
+                response.sendRedirect("http://localhost:3000/?error=naver_no_user_info");
                 return;
             }
 
@@ -121,6 +121,13 @@ public class NaverController {
                     name != null ? name : (nickname != null ? nickname : "네이버사용자"),
                     nickname != null ? nickname : "네이버사용자",
                     profileImage != null ? profileImage : "");
+
+            // 사용자 ID 확인
+            if (user == null || user.getId() == null) {
+                System.err.println("네이버 사용자 생성 실패: 사용자 ID가 null입니다.");
+                response.sendRedirect("http://localhost:3000/?error=naver_user_creation_failed");
+                return;
+            }
 
             // JWT 토큰 생성 (User ID, 이메일, 이름, 제공자 정보 포함)
             String jwtToken = jwtTokenProvider.generateToken(
@@ -144,7 +151,7 @@ public class NaverController {
             System.err.println("네이버 OAuth 인증 실패: " + e.getMessage());
             e.printStackTrace();
             try {
-                response.sendRedirect("http://localhost:3000/login?error=naver_auth_failed&message=" +
+                response.sendRedirect("http://localhost:3000/?error=naver_auth_failed&message=" +
                         URLEncoder.encode(e.getMessage(), "UTF-8"));
             } catch (Exception ex) {
                 // ignore

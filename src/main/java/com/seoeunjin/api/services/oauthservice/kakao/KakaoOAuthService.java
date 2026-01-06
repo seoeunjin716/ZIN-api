@@ -15,22 +15,22 @@ public class KakaoOAuthService {
 
     private final RestTemplate restTemplate;
     
-    @Value("${kakao.client-id:}")
+    @Value("${oauth.kakao.rest-api-key:}")
     private String clientId;
     
     @Value("${KAKAO_REST_API_KEY:}")
     private String restApiKey;
     
-    @Value("${kakao.client-secret:}")
+    @Value("${oauth.kakao.client-secret:}")
     private String clientSecret;
     
-    @Value("${kakao.redirect-uri:http://localhost:8080/kakao/callback}")
+    @Value("${oauth.kakao.redirect-uri:http://localhost:8080/kakao/callback}")
     private String redirectUri;
 
     @Autowired
     public KakaoOAuthService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-        // KAKAO_CLIENT_ID가 비어있으면 KAKAO_REST_API_KEY 사용
+        // KAKAO_REST_API_KEY가 설정되어 있으면 우선 사용
         if ((this.clientId == null || this.clientId.isEmpty()) && 
             (this.restApiKey != null && !this.restApiKey.isEmpty())) {
             this.clientId = this.restApiKey;
