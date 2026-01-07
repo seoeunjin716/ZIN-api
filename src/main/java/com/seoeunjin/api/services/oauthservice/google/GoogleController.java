@@ -1,6 +1,7 @@
 package com.seoeunjin.api.services.oauthservice.google;
 
 import com.seoeunjin.api.services.oauthservice.jwt.JwtTokenProvider;
+import com.seoeunjin.api.services.oauthservice.redis.RedisTokenService;
 import com.seoeunjin.api.services.oauthservice.user.User;
 import com.seoeunjin.api.services.oauthservice.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,15 +21,84 @@ public class GoogleController {
     private final GoogleOAuthService googleOAuthService;
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RedisTokenService redisTokenService;
 
     @Autowired
     public GoogleController(GoogleOAuthService googleOAuthService,
             UserService userService,
-            JwtTokenProvider jwtTokenProvider) {
+            JwtTokenProvider jwtTokenProvider,
+            RedisTokenService redisTokenService) {
         this.googleOAuthService = googleOAuthService;
         this.userService = userService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.redisTokenService = redisTokenService;
         System.out.println("GoogleController 초기화됨");
+    }
+
+    /**
+     * 사용자 정보 조회 (JWT 토큰에서)
+     */
+    @GetMapping("/user")
+    public ResponseEntity<Map<String, Object>> getUserInfo(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                response.put("success", false);
+                response.put("message", "인증 토큰이 없습니다.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            String token = authHeader.substring(7);
+            if (!jwtTokenProvider.validateToken(token)) {
+                response.put("success", false);
+                response.put("message", "유효하지 않은 토큰입니다.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            Long userId = jwtTokenProvider.getUserIdFromToken(token);
+            User user = userService.findById(userId);
+            if (user == null) {
+                response.put("success", false);
+                response.put("message", "사용자를 찾을 수 없습니다.");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            Map<String, Object> userData = new HashMap<>();
+            // googleId는 users.kakaoId 필드에 저장되어 있음 (provider로 구분)
+            userData.put("id", user.getKakaoId());
+            userData.put("nickname", user.getNickname() != null ? user.getNickname() : user.getName());
+            userData.put("email", user.getEmail());
+            userData.put("provider", "google");
+
+            response.put("success", true);
+            response.put("user", userData);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "사용자 정보 조회 실패: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * 로그아웃 - 쿠키 삭제 및 Redis 토큰 삭제
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            // JWT 토큰에서 사용자 정보 추출 (선택적)
+            // 쿠키는 클라이언트에서 삭제해야 함
+            response.put("success", true);
+            response.put("message", "로그아웃 성공");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "로그아웃 실패: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     /**
@@ -84,6 +154,10 @@ public class GoogleController {
             }
 
             String accessToken = (String) tokenResponse.get("access_token");
+            String refreshToken = (String) tokenResponse.get("refresh_token");
+            Object expiresInObj = tokenResponse.get("expires_in");
+            long expiresIn = expiresInObj != null ? Long.parseLong(expiresInObj.toString()) : 3600; // 기본 1시간
+            
             System.out.println("구글 Access Token 획득 성공");
 
             // 사용자 정보 조회
@@ -114,6 +188,27 @@ public class GoogleController {
                     user.getEmail() != null ? user.getEmail() : "",
                     user.getName() != null ? user.getName() : user.getNickname(),
                     "google");
+            
+            // JWT Refresh Token 생성 (간단히 access token과 동일하게, 실제로는 별도 생성 로직 필요)
+            String jwtRefreshToken = jwtToken; // TODO: 실제 Refresh Token 생성 로직 구현 필요
+
+            // OAuth 원본 토큰을 Redis에 저장
+            redisTokenService.saveOAuthToken(
+                    "google",
+                    googleId,
+                    accessToken,
+                    refreshToken,
+                    expiresIn
+            );
+
+            // JWT 토큰을 Redis에 저장 (1시간 만료)
+            redisTokenService.saveJwtToken(
+                    "google",
+                    user.getId().toString(),
+                    jwtToken,
+                    jwtRefreshToken,
+                    3600 // 1시간
+            );
 
             // 쿠키 설정
             String cookie = String.format(
@@ -123,8 +218,13 @@ public class GoogleController {
 
             // 로그인 성공 메시지 출력
             System.out.println("구글 로그인 성공! 사용자 ID: " + user.getId() + ", 구글 ID: " + googleId);
-
-            response.sendRedirect("http://localhost:3000/dashboard/google");
+            
+            // 프론트엔드로 토큰과 함께 리다이렉트 (provider 포함)
+            String redirectUrl = String.format(
+                    "http://localhost:3000/?token=%s&refresh_token=%s&provider=google",
+                    URLEncoder.encode(jwtToken, "UTF-8"),
+                    URLEncoder.encode(jwtRefreshToken, "UTF-8"));
+            response.sendRedirect(redirectUrl);
 
         } catch (Exception e) {
             System.err.println("구글 OAuth 인증 실패: " + e.getMessage());

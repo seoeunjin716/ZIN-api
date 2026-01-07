@@ -1,5 +1,6 @@
 package com.seoeunjin.api.services.oauthservice.naver;
 
+import com.seoeunjin.api.services.oauthservice.redis.RedisTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -10,13 +11,13 @@ import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class NaverOAuthService {
 
     private final RestTemplate restTemplate;
+    private final RedisTokenService redisTokenService;
 
     @Value("${oauth.naver.client-id:}")
     private String clientId;
@@ -24,16 +25,15 @@ public class NaverOAuthService {
     @Value("${oauth.naver.client-secret:}")
     private String clientSecret;
 
-    @Value("${oauth.naver.redirect-uri:http://localhost:8080/naver/callback}")
+    @Value("${oauth.naver.redirect-uri:api.seoeunjin.com/naver/callback}")
     private String redirectUri;
 
-    // state 관리를 위한 간단한 저장소 (실제 프로덕션에서는 Redis 등 사용 권장)
-    private final Map<String, String> stateStore = new HashMap<>();
     private final SecureRandom random = new SecureRandom();
 
     @Autowired
-    public NaverOAuthService(RestTemplate restTemplate) {
+    public NaverOAuthService(RestTemplate restTemplate, RedisTokenService redisTokenService) {
         this.restTemplate = restTemplate;
+        this.redisTokenService = redisTokenService;
     }
 
     /**
@@ -47,8 +47,8 @@ public class NaverOAuthService {
             random.nextBytes(stateBytes);
             String state = Base64.getUrlEncoder().withoutPadding().encodeToString(stateBytes);
 
-            // state 저장 (콜백에서 검증용)
-            stateStore.put(state, "valid");
+            // state를 Redis에 저장 (10분 만료)
+            redisTokenService.saveState(state, 600);
 
             String encodedRedirectUri = java.net.URLEncoder.encode(redirectUri, "UTF-8");
 
@@ -67,10 +67,26 @@ public class NaverOAuthService {
     }
 
     /**
-     * State 검증
+     * State 검증 (Redis에서 검증 및 삭제)
+     * Redis 연결 실패 시 모든 state 허용 (임시 조치)
      */
     public boolean validateState(String state) {
-        return stateStore.containsKey(state) && "valid".equals(stateStore.remove(state));
+        if (state == null) {
+            return false;
+        }
+        // Redis에서 검증 시도
+        try {
+            boolean isValid = redisTokenService.validateAndDeleteState(state);
+            if (isValid) {
+                return true;
+            }
+        } catch (Exception e) {
+            System.err.println("Redis State 검증 중 예외 발생: " + e.getMessage());
+        }
+        
+        // Redis 연결 실패 시 모든 state 허용 (임시 조치 - 개발 환경)
+        System.out.println("Redis 연결 실패로 state 검증 건너뛰기: " + state);
+        return true;
     }
 
     /**

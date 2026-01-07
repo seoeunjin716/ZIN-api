@@ -123,5 +123,12 @@ public class UserService {
             return userRepository.save(newUser);
         }
     }
+
+    /**
+     * ID로 사용자 찾기
+     */
+    public User findById(Long id) {
+        return userRepository.findById(id).orElse(null);
+    }
 }
 

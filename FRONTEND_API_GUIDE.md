@@ -14,7 +14,7 @@
 
 ### Base URL
 ```
-http://localhost:8080
+api.seoeunjin.com
 ```
 
 ### CORS 설정
@@ -46,7 +46,7 @@ http://localhost:8080
 
 **요청:**
 ```typescript
-const response = await fetch('http://localhost:8080/api/auth/google/auth-url');
+const response = await fetch('api.seoeunjin.com/api/auth/google/auth-url');
 const data = await response.json();
 ```
 
@@ -60,7 +60,7 @@ const data = await response.json();
 
 **사용 예시:**
 ```typescript
-const response = await fetch('http://localhost:8080/api/auth/google/auth-url');
+const response = await fetch('api.seoeunjin.com/api/auth/google/auth-url');
 const { auth_url } = await response.json();
 window.location.href = auth_url; // 구글 로그인 페이지로 이동
 ```
@@ -138,7 +138,7 @@ export default function CallbackPage() {
 ```typescript
 const redirectUri = encodeURIComponent('http://localhost:3000/kakao-callback');
 const response = await fetch(
-  `http://localhost:8080/oauth2/kakao/auth-url?redirect_uri=${redirectUri}`
+  `api.seoeunjin.com/oauth2/kakao/auth-url?redirect_uri=${redirectUri}`
 );
 const data = await response.json();
 ```
@@ -191,7 +191,7 @@ export default function KakaoCallbackPage() {
 
   const exchangeToken = async (code: string) => {
     try {
-      const response = await fetch('http://localhost:8080/api/auth/kakao/token', {
+      const response = await fetch('api.seoeunjin.com/api/auth/kakao/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -272,7 +272,7 @@ localStorage.setItem('refreshToken', refreshToken);
 ```typescript
 const token = localStorage.getItem('accessToken');
 
-const response = await fetch('http://localhost:8080/api/users/profile', {
+const response = await fetch('api.seoeunjin.com/api/users/profile', {
   method: 'GET',
   headers: {
     'Authorization': `Bearer ${token}`,
@@ -323,7 +323,7 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const response = await fetch('http://localhost:8080/api/auth/refresh', {
+    const response = await fetch('api.seoeunjin.com/api/auth/refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -405,7 +405,7 @@ export function useAuth() {
 
   const loginWithGoogle = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/auth/google/auth-url');
+      const response = await fetch('api.seoeunjin.com/api/auth/google/auth-url');
       const { auth_url } = await response.json();
       window.location.href = auth_url;
     } catch (error) {
@@ -417,7 +417,7 @@ export function useAuth() {
     try {
       const redirectUri = encodeURIComponent('http://localhost:3000/kakao-callback');
       const response = await fetch(
-        `http://localhost:8080/oauth2/kakao/auth-url?redirect_uri=${redirectUri}`
+        `api.seoeunjin.com/oauth2/kakao/auth-url?redirect_uri=${redirectUri}`
       );
       const { auth_url } = await response.json();
       window.location.href = auth_url;
@@ -477,7 +477,7 @@ export default function LoginButton() {
 
 ```typescript
 // utils/api.ts
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'api.seoeunjin.com';
 
 export async function apiRequest(
   endpoint: string,
@@ -527,7 +527,7 @@ export async function getUserProfile() {
 
 1. **프로덕션 환경**: Base URL을 환경 변수로 관리하세요.
    ```typescript
-   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'api.seoeunjin.com';
    ```
 
 2. **토큰 보안**: 
@@ -545,8 +545,8 @@ export async function getUserProfile() {
 
 ## 추가 리소스
 
-- Swagger UI: `http://localhost:8080/docs`
-- API 문서: `http://localhost:8080/v3/api-docs`
+- Swagger UI: `api.seoeunjin.com/docs`
+- API 문서: `api.seoeunjin.com/v3/api-docs`
 
 ---
 

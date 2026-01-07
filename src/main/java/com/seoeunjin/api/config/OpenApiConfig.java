@@ -34,7 +34,7 @@ public class OpenApiConfig {
                                 .name("Seoeunjin.com")
                                 .email("support@seoeunjin.com")))
                 .servers(List.of(
-                        new Server().url("http://localhost:8080").description("Local Development Server"),
+                        new Server().url("api.seoeunjin.com").description("Local Development Server"),
                         new Server().url("http://api.seoeunjin.com").description("Production Server")));
 
         // Gateway 라우트 경로 추가

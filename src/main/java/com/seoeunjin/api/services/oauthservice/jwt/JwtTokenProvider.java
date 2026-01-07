@@ -91,6 +91,14 @@ public class JwtTokenProvider {
     }
 
     /**
+     * JWT 토큰에서 제공자 추출
+     */
+    public String getProviderFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        return claims.get("provider", String.class);
+    }
+
+    /**
      * JWT 토큰에서 Claims 추출
      */
     private Claims getClaimsFromToken(String token) {

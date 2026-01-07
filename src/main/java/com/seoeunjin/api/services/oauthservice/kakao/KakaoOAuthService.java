@@ -24,7 +24,7 @@ public class KakaoOAuthService {
     @Value("${oauth.kakao.client-secret:}")
     private String clientSecret;
     
-    @Value("${oauth.kakao.redirect-uri:http://localhost:8080/kakao/callback}")
+    @Value("${oauth.kakao.redirect-uri:api.seoeunjin.com/kakao/callback}")
     private String redirectUri;
 
     @Autowired

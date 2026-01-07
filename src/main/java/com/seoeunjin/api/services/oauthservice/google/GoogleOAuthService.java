@@ -21,7 +21,7 @@ public class GoogleOAuthService {
     @Value("${oauth.google.client-secret:}")
     private String clientSecret;
     
-    @Value("${oauth.google.redirect-uri:http://localhost:8080/google/callback}")
+    @Value("${oauth.google.redirect-uri:api.seoeunjin.com/google/callback}")
     private String redirectUri;
 
     @Autowired
@@ -40,7 +40,7 @@ public class GoogleOAuthService {
             String encodedScope = java.net.URLEncoder.encode(scope, "UTF-8");
             
             return String.format(
-                "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=%s",
+                "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&prompt=select_account",
                 clientId,
                 encodedRedirectUri,
                 encodedScope
@@ -48,7 +48,7 @@ public class GoogleOAuthService {
         } catch (Exception e) {
             // 인코딩 실패 시 기본 URL 반환
             return String.format(
-                "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=openid%%20email%%20profile",
+                "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=openid%%20email%%20profile&prompt=select_account",
                 clientId,
                 redirectUri
             );
