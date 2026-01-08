@@ -42,6 +42,10 @@ spring:
   # Redis 설정 (Upstash)
   data:
     redis:
+      # ✅ 우선순위: URL(한 줄) -> host/port/password
+      # - Upstash 콘솔에서 제공하는 rediss://default:<password>@<host>:6379 형태를 그대로 사용 가능
+      # - 환경변수 키 호환: REDIS_URL 또는 UPSTASH_REDIS_URL
+      url: ${REDIS_URL:${UPSTASH_REDIS_URL:}}
       host: ${REDIS_HOST:summary-polliwog-43960.upstash.io}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
