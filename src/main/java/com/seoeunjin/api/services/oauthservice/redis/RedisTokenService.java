@@ -86,6 +86,35 @@ public class RedisTokenService {
     }
 
     /**
+     * ✅ 요구사항: accessToken을 Upstash Redis에 "메일주소와 함께" 저장
+     * - 키는 provider + email 기반으로 고정해서 Upstash Data Browser에서 찾기 쉽게 함
+     * - 값은 JSON 문자열(간단)
+     */
+    public void saveAccessTokenWithEmail(String provider, String email, String accessToken, long expirationSeconds) {
+        try {
+            String safeEmail = email == null ? "" : email.trim().toLowerCase();
+            String key = String.format("access:%s:%s", provider, safeEmail);
+            String value = String.format("{\"provider\":\"%s\",\"email\":\"%s\",\"accessToken\":\"%s\"}",
+                    provider,
+                    safeEmail.replace("\"", "\\\""),
+                    accessToken == null ? "" : accessToken.replace("\"", "\\\""));
+            redisTemplate.opsForValue().set(key, value, expirationSeconds, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            System.err.println("Redis accessToken(email 포함) 저장 실패 (계속 진행): " + e.getMessage());
+        }
+    }
+
+    public void deleteAccessTokenByEmail(String provider, String email) {
+        try {
+            String safeEmail = email == null ? "" : email.trim().toLowerCase();
+            String key = String.format("access:%s:%s", provider, safeEmail);
+            redisTemplate.delete(key);
+        } catch (Exception e) {
+            System.err.println("Redis accessToken(email 기반) 삭제 실패 (계속 진행): " + e.getMessage());
+        }
+    }
+
+    /**
      * JWT Access Token 조회
      */
     public String getJwtAccessToken(String provider, String userId) {

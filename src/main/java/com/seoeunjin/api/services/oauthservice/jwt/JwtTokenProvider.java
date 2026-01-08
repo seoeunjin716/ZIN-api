@@ -63,6 +63,33 @@ public class JwtTokenProvider {
     }
 
     /**
+     * JWT Refresh Token 생성
+     */
+    public String generateRefreshToken(Long userId, String email, String name, String provider) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
+
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtProperties.getRefreshTokenExpiration());
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        claims.put("email", email);
+        claims.put("name", name);
+        claims.put("provider", provider);
+        claims.put("tokenType", "refresh");
+
+        return Jwts.builder()
+                .subject(String.valueOf(userId))
+                .claims(claims)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(secretKey)
+                .compact();
+    }
+
+    /**
      * JWT 토큰에서 사용자 ID 추출
      */
     public Long getUserIdFromToken(String token) {

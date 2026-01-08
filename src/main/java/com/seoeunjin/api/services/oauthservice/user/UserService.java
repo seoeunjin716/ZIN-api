@@ -130,5 +130,29 @@ public class UserService {
     public User findById(Long id) {
         return userRepository.findById(id).orElse(null);
     }
+
+    /**
+     * Refresh Token(users.token) 저장
+     */
+    @Transactional
+    public User saveRefreshToken(User user, String refreshToken) {
+        if (user == null) {
+            return null;
+        }
+        user.setToken(refreshToken);
+        return userRepository.save(user);
+    }
+
+    /**
+     * Refresh Token(users.token) 삭제
+     */
+    @Transactional
+    public User clearRefreshToken(User user) {
+        if (user == null) {
+            return null;
+        }
+        user.setToken(null);
+        return userRepository.save(user);
+    }
 }
 

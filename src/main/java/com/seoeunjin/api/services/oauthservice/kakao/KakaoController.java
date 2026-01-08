@@ -5,6 +5,7 @@ import com.seoeunjin.api.services.oauthservice.redis.RedisTokenService;
 import com.seoeunjin.api.services.oauthservice.user.User;
 import com.seoeunjin.api.services.oauthservice.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,16 +23,19 @@ public class KakaoController {
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTokenService redisTokenService;
+    private final String frontendBaseUrl;
 
     @Autowired
     public KakaoController(KakaoOAuthService kakaoOAuthService,
             UserService userService,
             JwtTokenProvider jwtTokenProvider,
-            RedisTokenService redisTokenService) {
+            RedisTokenService redisTokenService,
+            @Value("${frontend.base-url:https://seoeunjin.com}") String frontendBaseUrl) {
         this.kakaoOAuthService = kakaoOAuthService;
         this.userService = userService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.redisTokenService = redisTokenService;
+        this.frontendBaseUrl = frontendBaseUrl;
         System.out.println("KakaoController 초기화됨");
     }
 
@@ -95,6 +99,11 @@ public class KakaoController {
                 try {
                     Long userId = jwtTokenProvider.getUserIdFromToken(token);
                     if (userId != null) {
+                        User user = userService.findById(userId);
+                        if (user != null) {
+                            userService.clearRefreshToken(user);
+                            redisTokenService.deleteAccessTokenByEmail("kakao", user.getEmail());
+                        }
                         redisTokenService.deleteTokens("kakao", userId.toString());
                     }
                 } catch (Exception e) {
@@ -217,8 +226,15 @@ public class KakaoController {
                     user.getName() != null ? user.getName() : user.getNickname(),
                     "kakao");
             
-            // JWT Refresh Token 생성 (간단히 access token과 동일하게, 실제로는 별도 생성 로직 필요)
-            String jwtRefreshToken = jwtToken; // TODO: 실제 Refresh Token 생성 로직 구현 필요
+            // JWT Refresh Token 생성
+            String jwtRefreshToken = jwtTokenProvider.generateRefreshToken(
+                    user.getId(),
+                    user.getEmail() != null ? user.getEmail() : "",
+                    user.getName() != null ? user.getName() : user.getNickname(),
+                    "kakao");
+
+            // ✅ refreshToken은 Neon DB users.token 컬럼에 저장
+            userService.saveRefreshToken(user, jwtRefreshToken);
 
             // OAuth 원본 토큰을 Redis에 저장
             redisTokenService.saveOAuthToken(
@@ -229,36 +245,29 @@ public class KakaoController {
                     expiresIn
             );
 
-            // JWT 토큰을 Redis에 저장 (1시간 만료)
-            redisTokenService.saveJwtToken(
+            // ✅ accessToken(JWT)은 Upstash Redis에 email 포함해서 저장
+            redisTokenService.saveAccessTokenWithEmail(
                     "kakao",
-                    user.getId().toString(),
+                    user.getEmail() != null ? user.getEmail() : "",
                     jwtToken,
-                    jwtRefreshToken,
                     3600 // 1시간
             );
-
-            // 쿠키 설정
-            String cookie = String.format(
-                    "access_token=%s; Path=/; Domain=localhost; Max-Age=86400; HttpOnly; SameSite=Lax",
-                    jwtToken);
-            response.setHeader("Set-Cookie", cookie);
 
             // 로그인 성공 메시지 출력
             System.out.println("카카오 로그인 성공! 사용자 ID: " + user.getId() + ", 카카오 ID: " + kakaoId);
 
-            // 프론트엔드로 토큰과 함께 리다이렉트 (provider 포함)
+            // 프론트엔드로 토큰과 함께 리다이렉트 (refresh_token은 DB에 저장하므로 노출하지 않음)
             String redirectUrl = String.format(
-                    "http://localhost:3000/?token=%s&refresh_token=%s&provider=kakao",
-                    URLEncoder.encode(jwtToken, "UTF-8"),
-                    URLEncoder.encode(jwtRefreshToken, "UTF-8"));
+                    "%s/?token=%s&provider=kakao",
+                    frontendBaseUrl,
+                    URLEncoder.encode(jwtToken, "UTF-8"));
             response.sendRedirect(redirectUrl);
 
         } catch (Exception e) {
             System.err.println("카카오 OAuth 인증 실패: " + e.getMessage());
             e.printStackTrace();
             try {
-                response.sendRedirect("http://localhost:3000/login?error=kakao_auth_failed&message=" +
+                response.sendRedirect(frontendBaseUrl + "/login?error=kakao_auth_failed&message=" +
                         URLEncoder.encode(e.getMessage(), "UTF-8"));
             } catch (Exception ex) {
                 // ignore

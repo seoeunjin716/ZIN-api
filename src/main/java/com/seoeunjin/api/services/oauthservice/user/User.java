@@ -31,6 +31,13 @@ public class User {
     @Column(nullable = false)
     private String provider = "kakao"; // kakao, google, naver
 
+    /**
+     * Refresh Token 저장용 (Neon DB users.token 컬럼)
+     * - 컬럼 타입이 text인 경우가 많아 columnDefinition="text"로 매핑
+     */
+    @Column(columnDefinition = "text")
+    private String token;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -103,6 +110,14 @@ public class User {
 
     public void setProvider(String provider) {
         this.provider = provider;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public LocalDateTime getCreatedAt() {
